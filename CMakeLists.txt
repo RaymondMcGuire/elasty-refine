@@ -1,21 +1,24 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.5)
+
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake CACHE STRING "")
+	message(STATUS  "VCPKG is enable: CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}") 
+endif()
+
 project(elasty)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+
+
+
 # ------------------------------------------------------------------------------
 # Find prerequisites
 # ------------------------------------------------------------------------------
 
 find_package(Eigen3 REQUIRED)
-if((NOT TARGET Eigen3::Eigen) AND (DEFINED EIGEN3_INCLUDE_DIR))
-  # Eigen 3.0--3.2 do not provide the target named Eigen3::Eigen
-  add_library(AliasEigen3 INTERFACE)
-  target_include_directories(AliasEigen3 INTERFACE ${EIGEN3_INCLUDE_DIR})
-  add_library(Eigen3::Eigen ALIAS AliasEigen3)
-endif()
 
 # ------------------------------------------------------------------------------
 # Build external libraries
@@ -50,51 +53,52 @@ file(GLOB headers ${CMAKE_CURRENT_SOURCE_DIR}/include/elasty/*.hpp)
 
 add_library(elasty STATIC ${sources} ${headers})
 target_include_directories(elasty PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(elasty PUBLIC Eigen3::Eigen)
+target_link_libraries(elasty PRIVATE Eigen3::Eigen)
 target_link_libraries(elasty PRIVATE Alembic tinyobjloader)
 
 # ------------------------------------------------------------------------------
 # Build examples
 # ------------------------------------------------------------------------------
 
-option(ELASTY_EXAMPLES ON "")
-if(ELASTY_EXAMPLES)
-  set(BIGGER_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/bigger)
+# option(ELASTY_EXAMPLES ON "")
+# if(ELASTY_EXAMPLES)
+message(STATUS  "ELASTY_EXAMPLES is enable") 
+set(BIGGER_EXAMPLES OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/bigger)
 
-  set(MATHTOOLBOX_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-  set(MATHTOOLBOX_PYTHON_BINDINGS OFF CACHE INTERNAL "" FORCE)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/mathtoolbox)
+set(MATHTOOLBOX_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
+set(MATHTOOLBOX_PYTHON_BINDINGS OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/mathtoolbox)
 
-  add_executable(cloth-alembic ${CMAKE_CURRENT_SOURCE_DIR}/examples/cloth-alembic/main.cpp)
-  target_link_libraries(cloth-alembic elasty timer)
+add_executable(cloth-alembic ${CMAKE_CURRENT_SOURCE_DIR}/examples/cloth-alembic/main.cpp)
+target_link_libraries(cloth-alembic elasty timer)
 
-  add_executable(explicit-2d ${CMAKE_CURRENT_SOURCE_DIR}/examples/explicit-2d/main.cpp)
-  target_link_libraries(explicit-2d elasty timer Alembic)
+add_executable(explicit-2d ${CMAKE_CURRENT_SOURCE_DIR}/examples/explicit-2d/main.cpp)
+target_link_libraries(explicit-2d elasty timer Alembic)
 
-  add_executable(variational-implicit-2d ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-2d/main.cpp)
-  target_link_libraries(variational-implicit-2d elasty timer Alembic mathtoolbox)
+add_executable(variational-implicit-2d ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-2d/main.cpp)
+target_link_libraries(variational-implicit-2d elasty timer Alembic mathtoolbox)
 
-  add_executable(variational-implicit-3d ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-3d/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-3d/mesh.hpp)
-  target_link_libraries(variational-implicit-3d elasty timer Alembic mathtoolbox)
-  add_custom_command(TARGET variational-implicit-3d POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:variational-implicit-3d>/assets)
+add_executable(variational-implicit-3d ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-3d/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/examples/variational-implicit-3d/mesh.hpp)
+target_link_libraries(variational-implicit-3d elasty timer Alembic mathtoolbox)
+add_custom_command(TARGET variational-implicit-3d POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:variational-implicit-3d>/assets)
 
-  add_executable(interactive-app ${CMAKE_CURRENT_SOURCE_DIR}/examples/interactive-app/main.cpp)
-  target_link_libraries(interactive-app bigger elasty)
-  add_custom_command(TARGET interactive-app POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${BIGGER_SHADER_OUTPUT_DIR} $<TARGET_FILE_DIR:interactive-app>/shaders)
+add_executable(interactive-app ${CMAKE_CURRENT_SOURCE_DIR}/examples/interactive-app/main.cpp)
+target_link_libraries(interactive-app bigger elasty)
+add_custom_command(TARGET interactive-app POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${BIGGER_SHADER_OUTPUT_DIR} $<TARGET_FILE_DIR:interactive-app>/shaders)
 
-  add_executable(pbd-xpbd-comparison ${CMAKE_CURRENT_SOURCE_DIR}/examples/pbd-xpbd-comparison/main.cpp)
-  target_link_libraries(pbd-xpbd-comparison elasty timer)
+add_executable(pbd-xpbd-comparison ${CMAKE_CURRENT_SOURCE_DIR}/examples/pbd-xpbd-comparison/main.cpp)
+target_link_libraries(pbd-xpbd-comparison elasty timer)
 
-  add_executable(aerodynamics ${CMAKE_CURRENT_SOURCE_DIR}/examples/aerodynamics/main.cpp)
-  target_link_libraries(aerodynamics elasty timer)
-else()
-  # Both bigger and elasty depend on tinyobjloader; when bigger is not added, it is necessary to add tinyobjloader explicitly
-  set(TINYOBJLOADER_BUILD_OBJ_STICHER OFF CACHE INTERNAL "" FORCE)
-  set(TINYOBJLOADER_BUILD_TEST_LOADER OFF CACHE INTERNAL "" FORCE)
-  set(TINYOBJLOADER_USE_DOUBLE        OFF CACHE INTERNAL "" FORCE)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/bigger/external/tinyobjloader)
-endif()
+add_executable(aerodynamics ${CMAKE_CURRENT_SOURCE_DIR}/examples/aerodynamics/main.cpp)
+target_link_libraries(aerodynamics elasty timer)
+# else()
+  # # Both bigger and elasty depend on tinyobjloader; when bigger is not added, it is necessary to add tinyobjloader explicitly
+  # set(TINYOBJLOADER_BUILD_OBJ_STICHER OFF CACHE INTERNAL "" FORCE)
+  # set(TINYOBJLOADER_BUILD_TEST_LOADER OFF CACHE INTERNAL "" FORCE)
+  # set(TINYOBJLOADER_USE_DOUBLE        OFF CACHE INTERNAL "" FORCE)
+  # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/bigger/external/tinyobjloader)
+# endif()
 
 # ------------------------------------------------------------------------------
 # Build tests
